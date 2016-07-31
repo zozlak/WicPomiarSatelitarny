@@ -1,0 +1,85 @@
+---
+title: "Wczytywanie obrazów satelitarnych do R"
+author: "Mateusz Zółtak"
+date: "30 lipca 2016"
+output: html_document
+---
+
+# Przygotowanie
+
+Tym razem będziemy potrzebowali pakietu raster
+
+```{r, eval=FALSE}
+install.packages(c('raster', 'rgdal', 'rasterVis'))
+```
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+library('raster')
+library('rasterVis')
+```
+
+# aaa
+
+```{r}
+setwd('~/Pobrane/')
+library(raster)
+library(ggplot2)
+
+req = GET(
+  'http://s2.boku.eodc.eu/image', 
+  query = list('utm' = '34UEB', 'dateMin' = '2016-06-29', 'dateMax' = '2016-06-29', 'band' = 'LAI'),
+  username = 'WIC',
+  password = 'pulawy2016'
+)
+zdjecia = fromJSON(content(req, 'text'))
+download.file(
+  paste0(zdjecia[1, 'url'], '?resolution=60'),
+  paste0('dane/', zdjecia[1, 'band'], '.tiff'),
+  mode = 'wb', 
+  quiet = TRUE
+)
+
+bands = list()
+values = list()
+for(i in c('B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12', 'LAI', 'SCL')){
+  bands[[i]] = raster(paste0('dane/', i, '.tiff'))
+  values[[i]] = getValues(bands[[i]])
+}
+values = as.data.frame(values)
+values[, 'NDVI'] = (values[, 'B8A'] - values[, 'B04']) / (values[, 'B8A'] + values[, 'B04'])
+
+levelplot(bands[['SCL']])
+tmp = ratify(bands[['SCL']])
+levels(tmp) = data.frame()
+
+# SCL:
+# 0 no data
+# 1 saturated
+# 2 dark area
+# 3 cloud shadow
+# 4 vegetation
+# 5 bare soil
+# 6 water
+# 7 cloud low
+# 8 cloud med
+# 9 cloud hig
+# 10 cirrus
+# 11 snow
+plot(bands[['SCL']], col=c('red', 'grey', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white'))
+
+ggplot(values, aes(x = NDVI, y = LAI)) + geom_bin2d(binwidth = c(0.05, 100))
+ggplot(values[values$SCL < 7 & values$SCL > 3, ], aes(x = NDVI, y = LAI)) + geom_bin2d(binwidth = c(0.05, 100))
+
+out = raster('dane/B02.tiff')
+out = setValues(out, ifelse(values$NDVI < 0.2 & values$NDVI > 0 & values$LAI > 1300 & values$LAI < 2000, 1, NA))
+
+
+model = lm(LAI ~ B02 + B03 + B04 + B05 + B06 + B07 + B8A + B09 + B11 + B12, data = values[values$SCL < 7 & values$SCL > 3, ])
+
+writeRaster(
+  stack(bands[['B04']], bands[['B03']], bands[['B02']]), 
+  'dane/rgb.tiff', 
+  overwrite = TRUE,
+  datatype = 'INT1U'
+)
+```

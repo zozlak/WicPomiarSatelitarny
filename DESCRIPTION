@@ -1,0 +1,15 @@
+Package: WicPomiarSatelitarny
+Title: Pakiet ulatwiajacy przeprowadzenie warsztatow z pomiaru satelitarnego
+Version: 0.0.1
+Authors@R: person("Mateusz", "Zoltak", email = "zozlak@zozlak.org", role = c("aut", "cre"))
+Description: Pakiet ulatwiajacy przeprowadzenie warsztatow z pomiaru satelitarnego przygotowany na WIC 2016.
+Depends: 
+  R (>= 3.2.3),
+  raster,
+  rasterVis,
+  rgdal,
+  httr,
+  jsonlite
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true

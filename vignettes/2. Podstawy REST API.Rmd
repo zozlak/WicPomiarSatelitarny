@@ -1,0 +1,102 @@
+---
+title: "Podstawy REST API"
+author: "Mateusz Zółtak"
+output: html_document
+---
+
+# Wstęp
+
+Dane satelitarne mają bardzo duży rozmiar, np. w wypadku naszych satelitów jest to ok. 1.5 TB dziennie po grupowane w ok. 200 "paczek", każda o rozmiarze średnio ok. 7 GB.
+Powoduje to, że nie da się tak po prostu ściągnąć ich wszystkich na nasz komputer, a następnie przetworzyć lokalnie.
+Zamiast tego musimy, przynajmniej w celu odfiltrowania i pobrania tylko tych danych, które nas interesują, polegać na przetwarzaniu zdalnym.
+
+W wypadku serwisu, z którego będziemy korzystać, będzie to możliwe za pośrednictwem tzw. *REST API*, gdzie zdalne przetwarzanie zlecamy poprzez przesłanie odpowiednio przygotowanych żadań HTTP (a więc technicznie w sposób bardzo podobny do tego, jak przeglądamy strony internetowe).
+
+*REST API* są bardzo rozpowszechnione w internecie. W sposób analogiczny do tego, w jaki będziemy korzystać z serwisu do pobierania danych satelitarnych, korzystać można z API udostępnianych przez Googla, Facebooka i wiele, wiele innych serwisów.
+
+# Wprowadzenie do REST API
+
+## Endpoint-y
+
+Każde *REST API* udostępnia zestaw adresów URL (tzw. *endpoints*), które udostępniają poszczególne dane czy czynności. W naszym wypadku są to:
+
+* http://s2.boku.eodc.eu/granule - adres umożliwiający wyszukiwanie "paczek danych"
+* http://s2.boku.eodc.eu/image - adres umożliwiający wyszukiwanie pojedynczych obrazów
+* http://s2.boku.eodc.eu/angle - adres umożliwiający wyszukiwanie informacji o kącie świecenia słońca oraz kącie obserwacji satelity dla poszczególnych obrazów
+* http://s2.boku.eodc.eu/rgb - adres umożliwiający sklejanie trzech obrazków monochromatycznych w jeden obraz kolorowy (RGB)
+* http://s2.boku.eodc.eu/image/{id} - adres umożliwiający pobieranie wskazanego obrazu
+
+Aby pobrać dane z danego *endpoint-u* należy wysłać pod wskazany adres żądanie HTTP GET. Najproście zrobić to... otwierając adres w przeglądarce internetowej (przeglądarka domyślnie otwierając wskazany adres wystosowuje właśnie żądanie GET).
+
+Spróbujmy zatem pobrać przykładowy obraz otwierając w przeglądarce adres http://s2.boku.eodc.eu/image/26978234  
+(skorygowany atmosferycznie obraz Puław w zakresie promieniowania zielonego widzialnego z 2 lipca 2016 w rozdzielczości 60 m / piksel)  
+Zostaniemy poproszeni o zalogowanie się. Użyjmy loginu `WIC` i hasła `pulawy2016`.  
+
+Niestety większość z nas nie może zapewne nic zrobić z pobranym obrazkiem, jest on bowiem zapisany w niezbyt popularnym formacie JPEG-2000.  
+Okazuje się jednak, że nasze API potrafi dostarczyć ten sam obraz w różnych formatach, trzeba jedynie przekazać mu odpowiedni paramet.
+
+## Parametry endpoint-ów
+
+Większość *endpoint-ów* obsługuje różnorakie parametry dostosowujące ich działanie do naszych potrzeb. Np. w wypadku *endpoint-u* http://s2.boku.eodc.eu/image/{id}, ktorego przed chwilą użyliśmy, mamy do dyspozycji parametry:
+
+Parametr | Typ                       | Opis
+-------- | ------------------------- | ---
+dataType | Byte/Int16/UInt16/Float32 | Typ danych zwracanego obrazu (domyślnie *Int16*)
+range    | int                       | Współczynnik skalowania wartości pikseli - 1000 (wartość domyślna) oznacza brak skalowania, 100 podzielenie wartości przez 10, 1000 pomnożenie przez 10, itd.
+
+Aby uzyskać obraz, który będziemy mogli łatwo obejrzeć, potrzebujemy skonwertować go to typu danych *Byte* (jednocześnie spowoduje to też konwersję do formatu TIFF).
+Jednocześnie, ponieważ typ danych *Byte* pozwala na przechowywanie wartości pikseli jedynie od 0 do 255, a oryginalne obrazy posiadają wartości od 0 do kilkunastu tysięcy, będziemy również chcieli podzielić wartości wszystkich pikseli przez 10.
+
+Parametry przekazujemy do API dopisując je do adresu URL używając składni: `bazowyURL?parametr1=wartość1&parametr2=wartość2`.  
+Dodatkowo jeśli w nazwie lub wartości parametru występują znaki  `?`, `&`, `=`, `@`, `%` czy `#`, należy zastąpić je specjalnymi kodami (odpowiednio `%3F`, `%26`, `%3D`, `%40`, `%25`, `%23`).
+
+W naszym wypadku chcemy użyć bazowego adresu URL http://s2.boku.eodc.eu/image/26978234 dodając do niego parametry `range` o wartości `100` oraz `dataType` o wartości `Byte`, co da w wyniku:  
+
+http://s2.boku.eodc.eu/image/26978234?range=100&dataType=Byte
+
+Spróbujmy pobrać obraz jeszcze raz, otworzyć go i wskazać Puławy :)
+
+## Format zwracanych danych
+
+Dotychczas pobieraliśmy pojedynczy obraz, który w naturalny sposób zwracany był w postaci pliku w formacie stosownym dla obrazów.
+Często jednak pobieramy z *REST API* nie pliki, lecz informacje, np. listę obrazów spełniających interesujące nas kryteria.
+W jakim formacie dostaniemy dane w tym wypadku?
+
+Sprawdźmy.
+
+Spróbujmy użyć *endpoint-u* http://s2.boku.eodc.eu/granule do wyszukania paczek danych obejmujących swoim zasięgiem Puławy nie starszych niż 1 lipca 2016 r.  
+W tym celu skorzystamy z parametrów: `utm` (pozwala nam wskazać element [siatki UTM](https://pl.wikipedia.org/wiki/Uk%C5%82ad_UTM), który mają pokrywać dane) oraz parametru `dateMin` (umożliwiaja wskazanie najstarszej dopuszczalnej daty):
+
+http://s2.boku.eodc.eu/granule?utm=34UEB&dateMin=2016-07-01
+
+Dane zwrócone zostały w formacie [JSON](https://pl.wikipedia.org/wiki/JSON).
+
+Jest to bardzo popularny format, którego parsery dostępne są we wszystkich popularnych językach programowania. 
+
+W szczególności jest on integralnie obsługiwany przez JavaScript, co umożliwia nam podejrzenie sparsowanej postaci w kosnoli dewelopera naszej przeglądarki (`CTRL+K` w Firefoksie, `CTRL+I` w Chromie, następnie kliknąć na zakładce *Monitor sieci*/*Network*, odświeżyć stronę, kliknąć na jedynej pozycji, która wyświetli się w zakładce *Network*/*Monitor sieci* i w podglądzie wybranego żądania wybrać *Odpowiedź*/*Preview*)
+
+Jak widzimy, zwrócona została tablica obiektów, z których każdy obiekt opisuje jedną paczkę danych.
+
+W innych językach programowania dane te skonwertowane zostaną na właściwe dla danego języka programowania typy danych (np. w Pythonie będzie to lista słowników, w PHP tablica tablic asocjacyjnych, itd.)
+
+Na koniec warto wspomnieć, że jakkolwiek JSON jest jednym z najczęściej wykorzystywanych formatów zwracania danych w *REST API*, niektóre API mogą zwracać dane w innych formatach (np. XML). Czasami istnieje też możliwość wyboru preferowanego formatu zwracanych danych czy to poprzez stosowny parametr wywołania *endpoint-u* czy to poprzez tzw. mechanizm negocjacji formatu będący elementem standardu HTTP, wykracza to już jednak poza ramy naszych obecnych zainteresowań.
+
+## Autoryzacja
+
+Liczne *REST API* wymagają uwierzytelniania. Istnieje bardzo dużo różnych metod uwierzytelniania, z czego najpopularniejsze to:
+
+* HTTP basic, gdzie login i hasło przesyłane są w nagłówkach żądania HTTP. Większość programów pozwala na podanie loginu i hasła, które mają być przekazane w ten sposób jako elementu adresu URL `http://login:hasło@zwykłyURL`, np. w wypadku pobierania przez nas obrazka http://WIC:pulawy2016@s2.boku.eodc.eu/image/26978234?range=100&dataType=Byte
+* Użycie tokena przekazywanego jako dodatkowy parametr żądania. Token trzeba uprzednio wygenerować w odpowiednim serwisie, gdzie podajemy login i hasło.
+
+API s2.boku.eodc.eu wspiera obydwie metody (w wypadku tokenów polega na tokenach generowanych przez Google), ale nam wygodniej będzie korzystać z pierwszej z nich.  
+Dociekliwi mogą dowiedzieć się więcej [tutaj](http://s2.boku.eodc.eu/wiki/#!authentication.md).
+
+# REST API serwisu s2.boku.eodc.eu
+
+Pełna dokumentacja API (lista wszystkich *endpoint-ów* i ich parametrów) znajduje się pod adresem http://s2.boku.eodc.eu/wiki/#!api.md
+
+# Zakończenie
+
+Powyżej zapoznaliśmy się z podstawami **pobierania danych** za pomocą *REST API*.  
+Tymczasem duża liczba *REST API* umożliwia również edycję (tworzenie, usuwanie, modyfikowanie) obiektów, które udostępnia.
+Jako że znajomość tych aspektów *REST API* nie jest nam potrzebna na warsztatach z pomiaru satelitarnego, nie będziemy ich tu omawiać.  Dociekliwi łatwo znajdą informacje na ten temat w internecie.

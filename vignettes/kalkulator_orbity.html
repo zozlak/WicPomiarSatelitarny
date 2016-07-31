@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Kalkulator orbity polarnej</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+        
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet"/>
+        <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet"/>
+        
+        <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
+        
+        <script type="text/javascript">
+            var G = 6.67408 * Math.pow(10, -11);
+            var M = 5.97237 * Math.pow(10, 24);
+            var R = 6371 * 1000;
+            
+            function przelicz(){
+                var h = parseFloat($('#h').val());
+                var kat = parseFloat($('#kat').val());
+                var res = parseFloat($('#res').val());
+                
+                var v = Math.sqrt(G * M / (R + h));
+                $('#v').val(Math.round(v));
+                var t = 2 * Math.PI * (R + h) / v / 60;
+                $('#t').val(Math.round(100 * t) / 100);
+                var n = 24 * 60 / t;
+                $('#n').val(Math.round(100 * n) / 100);
+                var w = 2 * h * Math.tan(Math.PI * kat / 2 / 180);
+                $('#w').val(Math.round(100 * w) / 100);
+                var N = 2 * Math.PI * R / w / 1000;
+                $('#N').val(Math.round(100 * N) / 100);
+                var T = N / n;
+                $('#T').val(Math.round(100 * T) / 100);
+                var s = w * 1000 / res;
+                $('#s').val(Math.round(100 * s) / 100);
+            }
+            
+            $().ready(function(){
+                $('form').submit(przelicz);
+                $('input').change(przelicz);
+                $('input').on('keyup', '', przelicz);
+                przelicz();
+            });
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+                <h2>Kalkulator kołowej orbity polarnej</h2>
+                <form action="#" class="" onsubmit="return false;">
+                    <div class="col-sm-4">
+                        <h3>Zmienne</h3>
+                        <div class="form-group">
+                            <label for="h">Wysokość orbity nad powierzchnią Ziemi</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">h = </span>
+                                <input type="number" class="form-control text-right" id="h" value="700" min="0" max="36000" step="10"/>
+                                <span class="input-group-addon">km</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="kat">Kąt widzenia sensora</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">α = </span>
+                                <input type="number" class="form-control text-right" id="kat" value="20" min="1" max="89" step="1"/>
+                                <span class="input-group-addon">°</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="res">Rozdzielczość sensora</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">s = </span>
+                                <input type="number" class="form-control text-right" id="res" value="20000" min="0" max="1000000" step="1000"/>
+                                <span class="input-group-addon">px</span>
+                            </div>
+                        </div>
+
+                        <h3>Stałe</h3>
+                        <div class="form-group">
+                            <label for="M">Masa Ziemi</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">M = </span>
+                                <input type="text" class="form-control text-right" id="M" value="5.97237" readonly/>
+                                <span class="input-group-addon">10<sup>24</sup> kg</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="R">Promień Ziemi</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">R = </span>
+                                <input type="text" class="form-control text-right" id="R" value="6371" readonly/>
+                                <span class="input-group-addon">km</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="G">Stała grawitacji</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">G = </span>
+                                <input type="text" class="form-control text-right" id="G" value="6.67408" readonly/>
+                                <span class="input-group-addon">10<sup>-11</sup>m<sup>3</sup>/(kg s<sup>2</sup>)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <h3>Wyliczone wartości</h3>
+                        <div class="form-group">
+                            <label for="v">Prędkość</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">v = </span>
+                                <input type="text" class="form-control text-right" id="v" readonly/>
+                                <span class="input-group-addon">m/s</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="t">Czas obiegu Ziemi</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">t = </span>
+                                <input type="text" class="form-control text-right" id="t" readonly/>
+                                <span class="input-group-addon">min</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="n">Liczba obiegów Ziemi na dobę</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">n = </span>
+                                <input type="text" class="form-control text-right" id="n" readonly/>
+                                <span class="input-group-addon">&nbsp;&nbsp;&nbsp;</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="w">Szerokość pasa obserwacji na powierzchni Ziemi</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">w = </span>
+                                <input type="text" class="form-control text-right" id="w" readonly/>
+                                <span class="input-group-addon">km</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="N">Liczba obiegów niezbędna do pokrycia całej Ziemi</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">N = </span>
+                                <input type="text" class="form-control text-right" id="N" readonly/>
+                                <span class="input-group-addon">&nbsp;&nbsp;&nbsp;</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="T">Czas między odwiedzeniem tego samego punktu na równiku</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">T = </span>
+                                <input type="text" class="form-control text-right" id="T" readonly/>
+                                <span class="input-group-addon">dni</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="s">Rozmiar piksela</label>
+                            <div class="input-group">
+                                <span class="input-group-addon">S = </span>
+                                <input type="text" class="form-control text-right" id="s" readonly/>
+                                <span class="input-group-addon">m</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <h3>Wzory</h3>
+                        $$ v = \sqrt{\frac{GM}{R + h}} \text{ [m/s]} $$
+                        $$ t = \frac{2 \pi (R + h)}{v} \text{ [s]} $$
+                        $$ n = \frac{24 \text{ h} \times 60 \text{ min/h} \times 60 \text{ s/min}}{t} $$
+                        $$ w = 2 \times h \times tan(\frac{α}{2}) $$
+                        $$ N = \frac{2 \pi R}{w} $$
+                        $$ T = \frac{N}{n} $$
+                        $$ S = \frac{w}{s} $$
+                        
+                        <h3>Przykładowe ustawienia</h3>
+                        <ul>
+                            <li>GeoEye-1: h = 680; α = 1,25; s = 37000</li>
+                            <li>Sentinel-2: h = 780; α = 21; s = 29000</li>
+                            <li>Tiros-1: h = 720; α = 80 / 10; s = 500</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

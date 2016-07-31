@@ -1,0 +1,163 @@
+---
+title: "Korzystanie z REST API w R"
+author: "Mateusz Zółtak"
+output: html_document
+---
+
+# Przygotowanie
+
+Aby w R wygodnie korzystać z *REST API*, które zwraca dane w formacie JSON, skorzystamy z pakietów:
+
+* [httr](https://github.com/hadley/httr).
+* [jsonlite](https://github.com/jeroenooms/jsonlite)
+* [dplyr](https://github.com/hadley/dplyr)
+* reshape2
+
+Zainstalujemy je komendą:
+
+```{r, eval=FALSE}
+install.packages(c('httr', 'jsonlite', 'dplyr', 'reshape2'))
+```
+
+A następnie załadujmy:
+
+```{r, results='hide', warning=FALSE, message=FALSE}
+library('httr')
+library('jsonlite')
+library('reshape2')
+library('dplyr')
+```
+
+# Wysyłanie żądań HTTP z pomocą pakietu httr
+
+Posłużymy się funkcją `GET()`. Interesujące nas parametry, które przyjmuje, to:
+
+```{r, eval=FALSE}
+GET(
+  url, 
+  query = list('nazwaParam1' = wartośćParam1, 'nazwaParam2' = wartośćParam2), 
+  username = login, 
+  password = hasło
+)
+```
+
+Funkcja ta zwraca obiekt żądania HTTP. Zwrócone dane, można pobrać funkcją `content(obiektŻądania, 'text')`.
+
+Wyszukajmy zatem wszystkie paczki danych obejmujących swoim zasięgiem Puławy nie starszych niż 1 lipca 2016 r.
+W tym celu skorzystamy *endpoint-u* http://s2.boku.eodc.eu/granule oraz parametrów `utm` (pozwala wskazać element [siatki UTM](https://pl.wikipedia.org/wiki/Uk%C5%82ad_UTM), który mają pokrywać dane) oraz parametru `dateMin` (umożliwiao wskazanie najstarszej dopuszczalnej daty):
+
+```{r}
+req = GET(
+  'http://s2.boku.eodc.eu/granule', 
+  query = list('utm' = '34UEB', 'dateMin' = '2016-07-01'),
+  username = 'WIC',
+  password = 'pulawy2016'
+)
+content(req, 'text')
+```
+
+Umiemy już wysłać żądanie HTTP i odebrać z niego dane. Teraz potrzebujemy je sparsować do struktur danych używanych w R.
+
+# Parsowanie danych JSON za pomocą pakietu jsonlite
+
+Pakiet jsonlite udostępnia funkcję `fromJSON()`, która parsuje JSON do struktur danych języka R.
+
+W większości wypadków wynikiem parsowania będzie *ramka danych* języka R.
+
+Spróbujmy zatem sparsować dane, które pobraliśmy:
+
+```{r}
+paczkiPulawy = fromJSON(content(req, 'text'))
+paczkiPulawy
+```
+
+Jak widać w wyniku otrzymaliśmy *ramkę danych* R (możemy o niej myśleć, jak o tabeli), której:
+
+* wiersze odpowiadają poszczególnym paczkom danych, 
+* kolumny opisują ich właściwości, np.: 
+    * identyfikator paczki (`granuleID`), 
+    * datę zebrania danych (`date`), 
+    * datę przetworzenia danych przez Europejską Agencję Kosmiczną (`processDate`), 
+    * element siatki UTM (`utm`), 
+    * odsetek powierzchni pokryty chmurami (`cloudCov`), 
+    * informację o tym, czy dokonano korekty atmosferycznej (`atmCorr`),
+    * opis kształtu paczki danych w formacie geoJSON (`geometry`),
+    * liczbę zleconych zadań przetwarzania danych pochodzących z tej paczki danych (`jobsCount`),
+    * adres URL umożliwiający pobranie tej konkretnej paczki danych (`url`).
+
+Teraz wystarczy się dowiedzieć, w jaki sposób możemy przetwarzać dane znajdujące się w *ramkach danych* R.
+
+# Pobieranie plików
+
+W analogiczny sposób możemy wyszukać same zdjęcia satelitarne:
+(wyszukamy je już dla jednej, wybranej daty - 2016-06-29 i ograniczymy się do skorygowanych atmosferycznie zdjęć w rozdzielczości 60 m na piksel)
+
+```{r}
+req = GET(
+  'http://s2.boku.eodc.eu/image', 
+  query = list('utm' = '34UEB', 'dateMin' = '2016-06-29', 'dateMax' = '2016-06-29', 'resolution' = 60, 'atmCorr' = 1),
+  username = 'WIC',
+  password = 'pulawy2016'
+)
+zdjecia = fromJSON(content(req, 'text'))
+# pomińmy wyświetlanie zbędnych kolumn
+zdjecia %>% select(-granule, -product, -geometry)
+```
+
+Jak widać adres URL umożliwiający pobranie poszczególnych zdjęć znajduje się w kolumnie `url`.
+
+Pliki najprościej będzie nam pobrać funkcją `download.file(url, ścieżkaZapisu, ...opcje...)`, którą uruchomimy w pętli:
+
+```{r, eval=FALSE}
+# utworzmy katalog, w którym zapiszemy pliki
+dir.create('dane', FALSE)
+
+# dla i od 1 do liczby wierszy w ramce danych zdjecia...
+for (i in 1:nrow(zdjecia)) {
+  download.file(
+    paste0(zdjecia[i, 'url'], '?dataType=Int16'),
+    paste0('dane/', zdjecia[i, 'band'], '.tiff'),
+    mode = 'wb', 
+    quiet = TRUE
+  )
+}
+```
+
+* Pobrane pliki zapisaliśmy w katalogu `dane` pod nazwami odpowiadającymi kodom pasm promieniowania, ktore przedstawiają.
+* Za pomocą parametru `dataType=Int16` dodanego do adresu URL skonwertowaliśmy dane na format TIFF (aby uniknąć potem problemów z wczytywaniem i obróką zdjęć).
+
+Przy okazji dowiedzieliśmy się, że:
+
+* Możemy wybrać dany wiersz i kolumnę ramki danych stosując zapis `ramkaDanych[wiersz, kolumna]`
+    * Co więcej, kolumnę możemy wybrać podając jej nazwę (możemy też "zwyczajnie" podać numer kolumny)
+* R zlicza wiersze i kolumny od 1
+* Do złączania łańcuchów znaków możemy użyć funkcji `paste0()` (w R nie istnieje operator złączania ze sobą łańcuchów znaków)
+
+# Zadania
+
+## Wyszukanie obrazów
+
+Jednym z parametrów, za pomocą których można filtrować wyszukiwane paczki danych/zdjęcia/itp. (zależnie od *endpoint-u*) jest `geometry`. Pozwala on wyszukiwać obiekty, których obszar przecina wskazany kształt zapisany w formacie geoJSON.
+
+Wiedząc, że aby zapisać punkt o danych współrzędnych geograficznych `{X, Y}` w geoJSON, należy użyć szablonu `{"type":"Point","coordinates":[X, Y]}`:
+
+* wybierz jakieś miejsce na mapie (byle byłby to ląd);
+* wyszukaj wszystkie nieskorygowane atmosferycznie obrazy w rozdzielczości 60 m na piksel o pokryciu chmurami poniżej 20% dla pasm `B02`, `B03` i `B04` pokrywające to miejsce.
+
+Podpowiedź - sprawdź [dokumentację endpoint-u](http://s2.boku.eodc.eu/wiki/#!image.md).
+
+## Pobranie obrazu RGB
+
+Wiedząc, że:
+
+* *endpoint* http://s2.boku.eodc.eu/rgb przyjmuje parametry `r`, `g` oraz `b`, które powinny być identyfikatorami zdjęć (`imageId`) i składa z nich jeden obraz kolorowy;
+* możesz przegrupować ramkę danych ze zdjęciami, tak by wiersze odpowiadały datom, a kolumny identyfikatorom zdjęć pochodzących z poszczególnych pasm używając składni:
+```{r, eval=FALSE}
+dcast(ramkaDanych, date ~ band, value.var = 'imageId')
+```
+
+Napisz kod, który wygeneruje adresy URL pobierające kolorowy obraz będący dla danej daty złożeniem pasma `B02` (jako `b`), `B03` (jako `g`) i `B04` (jako `r`).
+
+Pobierz jeden z takich obrazów.
+
+**Uwaga** - pamiętaj o dodaniu do adresu URL loginu i hasła.
