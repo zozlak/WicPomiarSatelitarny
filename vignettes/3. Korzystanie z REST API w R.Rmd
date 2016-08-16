@@ -6,20 +6,7 @@ output: html_document
 
 # Przygotowanie
 
-Aby w R wygodnie korzystać z *REST API*, które zwraca dane w formacie JSON, skorzystamy z pakietów:
-
-* [httr](https://github.com/hadley/httr).
-* [jsonlite](https://github.com/jeroenooms/jsonlite)
-* [dplyr](https://github.com/hadley/dplyr)
-* reshape2
-
-Zainstalujemy je komendą:
-
-```{r, eval=FALSE}
-install.packages(c('httr', 'jsonlite', 'dplyr', 'reshape2'))
-```
-
-A następnie załadujmy:
+Załadujmy potrzebne pakiety
 
 ```{r, results='hide', warning=FALSE, message=FALSE}
 library('httr')

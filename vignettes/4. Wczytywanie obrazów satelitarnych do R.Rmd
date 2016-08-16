@@ -7,65 +7,31 @@ output: html_document
 
 # Przygotowanie
 
-Tym razem będziemy potrzebowali pakietu raster
+Załadujmy potrzebne pakiety i ściągnijmy obrazy satelitarne z serwera:
 
-```{r, eval=FALSE}
-install.packages(c('raster', 'rgdal', 'rasterVis'))
-```
+```{r, message=FALSE, warning=FALSE}
+library(WicPomiarSatelitarny)
 
-```{r, results='hide', warning=FALSE, message=FALSE}
-library('raster')
-library('rasterVis')
+dir.create("dane", FALSE)
+pobierzObrazy(21.5, 51.5, "2016-06-29", "2016-06-29", 50, "dane")
 ```
 
 # aaa
 
 ```{r}
-setwd('~/Pobrane/')
-library(raster)
-library(ggplot2)
 
-req = GET(
-  'http://s2.boku.eodc.eu/image', 
-  query = list('utm' = '34UEB', 'dateMin' = '2016-06-29', 'dateMax' = '2016-06-29', 'band' = 'LAI'),
-  username = 'WIC',
-  password = 'pulawy2016'
-)
-zdjecia = fromJSON(content(req, 'text'))
-download.file(
-  paste0(zdjecia[1, 'url'], '?resolution=60'),
-  paste0('dane/', zdjecia[1, 'band'], '.tiff'),
-  mode = 'wb', 
-  quiet = TRUE
-)
+zdjecia = wczytajZdjecia("dane", "2016-06-29")
+eksportujKolor(zdjecia[["B04"]], zdjecia[["B03"]], zdjecia[["B02"]], 'dane/rgb.tif', 0, 5000)
+eksportujMono(zdjecia[["SCL"]], "dane/scl.tif", 0, 11, c('red', 'red', 'white', 'white', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white', 'white'))
 
-bands = list()
-values = list()
-for(i in c('B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B8A', 'B09', 'B11', 'B12', 'LAI', 'SCL')){
-  bands[[i]] = raster(paste0('dane/', i, '.tiff'))
-  values[[i]] = getValues(bands[[i]])
-}
-values = as.data.frame(values)
-values[, 'NDVI'] = (values[, 'B8A'] - values[, 'B04']) / (values[, 'B8A'] + values[, 'B04'])
+tmp = cut(zdjecia[["B04"]], breaks = c(100, 1000, 2000, 3000, 4000))
+plot(tmp)
+eksportujMono(tmp, "dane/tmp.tif", paleta = c('white', 'green'))
 
-levelplot(bands[['SCL']])
+
+levelplot(zdjecia[['SCL']])
 tmp = ratify(bands[['SCL']])
 levels(tmp) = data.frame()
-
-# SCL:
-# 0 no data
-# 1 saturated
-# 2 dark area
-# 3 cloud shadow
-# 4 vegetation
-# 5 bare soil
-# 6 water
-# 7 cloud low
-# 8 cloud med
-# 9 cloud hig
-# 10 cirrus
-# 11 snow
-plot(bands[['SCL']], col=c('red', 'grey', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white'))
 
 ggplot(values, aes(x = NDVI, y = LAI)) + geom_bin2d(binwidth = c(0.05, 100))
 ggplot(values[values$SCL < 7 & values$SCL > 3, ], aes(x = NDVI, y = LAI)) + geom_bin2d(binwidth = c(0.05, 100))
