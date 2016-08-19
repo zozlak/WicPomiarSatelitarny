@@ -1,0 +1,75 @@
+---
+title: "Zabawy z obrazami"
+author: "Mateusz Zółtak"
+date: "30 lipca 2016"
+output: html_document
+---
+
+# Przygotowanie
+
+Załadujmy potrzebne pakiety.
+
+```{r, message=FALSE, warning=FALSE}
+library(WicPomiarSatelitarny)
+```
+
+# Puławy
+
+## Pobranie danych
+
+Pobierzmy zdjęcia od 29 czerwca do dziś, ale tylko takie, dla których zachmurzenie nie przekraczało 60%.  
+(pozycja Puław to z grubsza 21.95 E, 51.5 N)
+
+```{r, eval=FALSE}
+zdjPulawy = pobierzZdjecia(21.95, 51.5, "2016-06-29", "2016-08-19", 60, "dane/Pulawy", "wget")
+```
+
+## Generowanie obrazów kolorowych
+
+```{r, eval=FALSE}
+# stwórz listę obiektów R na podstawie zdjęć zapisanych na dysku
+zdjecia = wczytajZdjecia("dane/Pulawy", "2016-08-08")
+
+# skomponuj obraz kolorowy z trzech wskazanych pasm
+eksportujKolor(zdjecia[["B04"]], zdjecia[["B03"]], zdjecia[["B02"]], 'dane/Pulawy/rgb.tif', 0, 5000)
+
+# pokoloruj klasyfikację scen w zadany sposób
+eksportujMono(zdjecia[["SCL"]], "dane/Pulawy/scl.tif", 0, 11, c('red', 'red', 'white', 'white', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white', 'white'))
+
+# pokoloruj pasmo wegetacji na zielono
+eksportujMono(zdjecia[["B8A"]], "dane/Pulawy/B8A_kolor.tif", 0, 5000, c('black', 'green'))
+```
+
+## NDVI
+
+```{r, eval=FALSE}
+zdjecia[["NDVI"]] = (zdjecia[["B8A"]] - zdjecia[["B04"]]) / (zdjecia[["B8A"]] + zdjecia[["B04"]])
+eksportujMono(zdjecia[["NDVI"]], "dane/Pulawy/NDVI_2016-08-08.tif", -1, 1, c('blue', 'black', 'green'))
+```
+
+Analogicznie policzmy NDVI dla 2016-06-29
+```{r, eval=FALSE}
+zdjecia2 = wczytajZdjecia("dane/Pulawy", "2016-06-29")
+zdjecia2[["NDVI"]] = (zdjecia2[["B8A"]] - zdjecia2[["B04"]]) / (zdjecia2[["B8A"]] + zdjecia2[["B04"]])
+eksportujMono(zdjecia2[["NDVI"]], "dane/Pulawy/NDVI_2016-06-29.tif", -1, 1, c('blue', 'black', 'green'))
+```
+
+## Chmury, itp.
+
+Ustawmy na braki danych wszystkie piksele niesklasyfikowane jako "roślinność", "goła ziemia" ani "woda".
+
+```{r, eval=FALSE}
+zdjecia[["NDVI"]][! zdjecia[["SCL"]] == 4] = NA
+zdjecia2[["NDVI"]][! zdjecia2[["SCL"]] %in% c(4, 5, 6)] = NA
+eksportujMono(zdjecia[["NDVI"]], "dane/Pulawy/NDVI_bez_chmur_2016-08-08.tif", -1, 1, c('blue', 'black', 'green'))
+eksportujMono(zdjecia2[["NDVI"]], "dane/Pulawy/NDVI_bez_chmur_2016-06-29.tif", -1, 1, c('blue', 'black', 'green'))
+```
+
+## NDVI po raz drugi
+
+Oznaczmy miejsca, wg różnicy wartości NDVI pomiędzy 29 czerwca i 8 sierpnia.
+
+```{r, eval=FALSE}
+roznica = zdjecia[["NDVI"]] - zdjecia2[["NDVI"]]
+eksportujMono(roznica, "dane/Pulawy/roznica.tif", -1, 1, c('red', 'black', 'green'))
+```
