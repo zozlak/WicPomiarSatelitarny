@@ -7,27 +7,41 @@ output: html_document
 
 # Przygotowanie
 
-Załadujmy potrzebne pakiety i ściągnijmy obrazy satelitarne z serwera:
+Załadujmy potrzebne pakiety.
 
 ```{r, message=FALSE, warning=FALSE}
 library(WicPomiarSatelitarny)
-
-dir.create("dane", FALSE)
-pobierzObrazy(21.5, 51.5, "2016-06-29", "2016-06-29", 50, "dane")
 ```
 
-# aaa
+# Puławy
+
+## Pobranie danych
+
+Pobierzmy zdjęcia od 29 czerwca do dziś, ale tylko takie, dla których zachmurzenie nie przekraczało 60%.  
+(pozycja Puław to z grubsza 21.5 E, 51.5 N)
 
 ```{r}
+pobierzZdjecia(21.5, 51.5, "2016-06-29", "2016-08-19", 60, "dane/Pulawy")
+```
 
+## Generowanie obrazów kolorowych
+
+```{r}
+# stwórz listę obiektów R na podstawie zdjęć zapisanych na dysku
 zdjecia = wczytajZdjecia("dane", "2016-06-29")
-eksportujKolor(zdjecia[["B04"]], zdjecia[["B03"]], zdjecia[["B02"]], 'dane/rgb.tif', 0, 5000)
-eksportujMono(zdjecia[["SCL"]], "dane/scl.tif", 0, 11, c('red', 'red', 'white', 'white', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white', 'white'))
+
+# skomponuj obraz kolorowy z trzech wskazanych pasm
+eksportujKolor(zdjecia[["B04"]], zdjecia[["B03"]], zdjecia[["B02"]], 'dane/Pulawy/rgb.tif', 0, 5000)
+
+# pokoloruj klasyfikację scen w zadany sposób
+eksportujMono(zdjecia[["SCL"]], "dane/Pulawy/scl.tif", 0, 11, c('red', 'red', 'white', 'white', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white', 'white'))
 
 tmp = cut(zdjecia[["B04"]], breaks = c(100, 1000, 2000, 3000, 4000))
 plot(tmp)
-eksportujMono(tmp, "dane/tmp.tif", paleta = c('white', 'green'))
+eksportujMono(tmp, "dane/tmp.tif", paleta = c('grey', 'green'))
+eksportujMono(zdjecia[["B04"]], "dane/tmp.tif", 0, 4000, paleta = c('white', 'green'))
 
+zdjecia[["NDVI"]] = (zdjecia[["B8A"]] - zdjecia[["B04"]]) / (zdjecia[["B8A"]] + zdjecia[["B04"]])
 
 levelplot(zdjecia[['SCL']])
 tmp = ratify(bands[['SCL']])
@@ -41,11 +55,16 @@ out = setValues(out, ifelse(values$NDVI < 0.2 & values$NDVI > 0 & values$LAI > 1
 
 
 model = lm(LAI ~ B02 + B03 + B04 + B05 + B06 + B07 + B8A + B09 + B11 + B12, data = values[values$SCL < 7 & values$SCL > 3, ])
+```
 
-writeRaster(
-  stack(bands[['B04']], bands[['B03']], bands[['B02']]), 
-  'dane/rgb.tiff', 
-  overwrite = TRUE,
-  datatype = 'INT1U'
-)
+# Pożar w Fort McMurray (Kanada)
+
+```{r}
+mcmurray = pobierzZdjecia(-111.37, 56.70, "2016-04-15", "2016-04-30", 50, "dane/McMurray")
+for(data in c("2016-04-29", "2016-05-02", "2016-05-05", "2016-05-12", "2016-05-15", "2016-05-25")){
+  zdjecia = wczytajZdjecia("dane/McMurray", data, skorAtm = FALSE)
+  #eksportujKolor(zdjecia[["B04"]], zdjecia[["B03"]], zdjecia[["B02"]], paste0('dane/McMurray/rgb_', data, '.tif'), 0, 2000)
+  eksportujMono(zdjecia[["B08"]], paste0('dane/McMurray/nir_', data, '.tif'), 0, 3000, paleta = c('white', 'red'))
+}
+
 ```
