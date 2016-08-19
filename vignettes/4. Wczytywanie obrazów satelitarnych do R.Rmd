@@ -21,7 +21,7 @@ Pobierzmy zdjęcia od 29 czerwca do dziś, ale tylko takie, dla których zachmur
 (pozycja Puław to z grubsza 21.95 E, 51.41 N)
 
 ```{r}
-zdjPulawy = pobierzZdjecia(21.95, 51.41, "2016-06-29", "2016-08-19", 60, "dane/Pulawy")
+zdjPulawy = pobierzZdjecia(21.95, 51.41, "2016-06-29", "2016-08-19", 60, "dane/Pulawy", "auto")
 ```
 
 ## Generowanie obrazów kolorowych
@@ -40,7 +40,11 @@ eksportujMono(zdjecia[["SCL"]], "dane/Pulawy/scl.tif", 0, 11, c('red', 'red', 'w
 eksportujMono(zdjecia[["B8A"]], "dane/Pulawy/B8A_kolor.tif", 0, 3000, c('grey', ''))
 ```
 
-## 
+## NDVI
+
+```{r}
+zdjecia[["NDVI"]] = (zdjecia[["B8A"]] - zdjecia[["B04"]]) / (zdjecia[["B8A"]] + zdjecia[["B04"]])
+```
 
 ```{r}
 tmp = cut(zdjecia[["B04"]], breaks = c(100, 1000, 2000, 3000, 4000))
@@ -48,7 +52,6 @@ plot(tmp)
 eksportujMono(tmp, "dane/tmp.tif", paleta = c('grey', 'green'))
 eksportujMono(zdjecia[["B04"]], "dane/tmp.tif", 0, 4000, paleta = c('white', 'green'))
 
-zdjecia[["NDVI"]] = (zdjecia[["B8A"]] - zdjecia[["B04"]]) / (zdjecia[["B8A"]] + zdjecia[["B04"]])
 
 levelplot(zdjecia[['SCL']])
 tmp = ratify(bands[['SCL']])

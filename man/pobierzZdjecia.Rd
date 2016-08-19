@@ -5,18 +5,26 @@
 \title{Pobiera zdjęcia obejmujące wskazany punkt we wskazanym czasie}
 \usage{
 pobierzZdjecia(dlGeogr, szGeogr, dataOd, dataDo, progChmur = 50,
-  katalog = ".")
+  katalog = ".", method = "auto")
 }
 \arguments{
-\item{dlGeogr}{Długość geograficzna w stopniach. Długość E ma wartości dodatnie, długość W ujemne.}
+\item{dlGeogr}{Długość geograficzna w stopniach. Długość E ma wartości
+dodatnie, długość W ujemne.}
 
-\item{szGeogr}{Szerokość geograficzna w stopniach. Szerokość N ma wartości dodatnie, szerokość S ujemne.}
+\item{szGeogr}{Szerokość geograficzna w stopniach. Szerokość N ma wartości
+dodatnie, szerokość S ujemne.}
 
-\item{dataOd}{data początku okresu, dla którego mają być pobrane zdjęcia w formacie RRRR-MM-DD}
+\item{dataOd}{data początku okresu, dla którego mają być pobrane zdjęcia w
+formacie RRRR-MM-DD}
 
-\item{dataDo}{data końca okresu, dla którego mają być pobrane zdjęcia w formacie RRRR-MM-DD}
+\item{dataDo}{data końca okresu, dla którego mają być pobrane zdjęcia w
+formacie RRRR-MM-DD}
 
-\item{katalog}{katalog, do którego zapisane zostaną zdjęcia (domyślnie obecny katalog roboczy)}
+\item{katalog}{katalog, do którego zapisane zostaną zdjęcia (domyślnie obecny
+katalog roboczy)}
+
+\item{method}{metoda pobierania plików (patrz parametr \code{method} funkcji
+\code{\link[utils]{download.file}})}
 }
 \value{
 ramka danych opisująca pobrane zdjęcia
@@ -25,7 +33,8 @@ ramka danych opisująca pobrane zdjęcia
 Pobiera zdjęcia obejmujące wskazany punkt we wskazanym czasie
 }
 \details{
-Dokładniej pobierane są wszystkie zdjęcia w rozdzielczości 60 m / piksel.
+Dokładniej pobierane są wszystkie zdjęcia w rozdzielczości 60 m /
+piksel.
 
 Zdjęcia zapisywane są pod nazwami "data_nazwaPasma.tiff" (skorygowane
 atmosferycznie) oraz "data_nazwaPasma_raw.tiff" (nieskorygowane
