@@ -30,3 +30,7 @@ Zasadniczo materiały znajdują się w katalogu [vignettes](https://github.com/z
 * [4. Zabawy z obrazami](https://htmlpreview.github.io/?https://github.com/zozlak/WicPomiarSatelitarny/blob/master/vignettes/4.%20Zabawy%20z%20obrazami.html) - handout przykładowych analiz danych satelitatnych w języku R
 
 Od strony technicznej repozytorium jest też poprawnym pakietem R, który zawiera funkcje pomocnicze wykorzystywane w handout-ach.
+
+## Żródło danych
+
+Dane satelitarne wykorzystywane w handout-ach pochodzą z serwisu http://s2.boku.eodc.eu.
