@@ -1,0 +1,44 @@
+---
+title: "Ściągawka"
+author: "Mateusz Zółtak"
+date: "20 sierpnia 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Pasma
+
+Nazwa | Rola 
+---|---
+B01 | granatowy (widzialny)
+B02 | niebieski (widzialny)
+B03 | zielony (widzialny)
+B04 | czerwony (widzialny)
+B05 | purpura (widzialny)
+B06, B07, B08 | bliska podczerwień
+B8A | wegetacja (np. do obliczania NDVI)
+B10, B11, B12 | podczerwień
+albedo | promieniowanie słoneczne odbite we wszystkich pasmach
+FAPAR | Fraction of Absorbed Photosynthetically Active Radiation
+FCOVER | Fraction of Vegetation Covered
+LAI | Leaf Area Index
+SCL | klasyfikacja scen
+VIS | widoczność
+WVP | parowanie wody
+
+# Klasyfikacja scen
+
+Wartość | Opis
+---|---
+0 | braki danych
+1 | błędy danych
+2 | obszary nieoświetlone
+3 | cienie chmur
+4 | roślinność
+5 | "goła ziemia"
+6 | woda
+7-10 | chmury
+11 | śnieg

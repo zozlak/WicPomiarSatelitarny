@@ -21,7 +21,10 @@ Pobierzmy zdjęcia od 29 czerwca do dziś, ale tylko takie, dla których zachmur
 (pozycja Puław to z grubsza 21.95 E, 51.5 N)
 
 ```{r, eval=FALSE}
-zdjPulawy = pobierzZdjecia(21.95, 51.5, "2016-06-29", "2016-08-19", 60, "dane/Pulawy", "wget")
+zdjPulawy = rbind(
+  pobierzZdjecia(21.95, 51.5, "2016-06-29", "2016-06-29", 60, "dane/Pulawy", "wget"),
+  pobierzZdjecia(21.95, 51.5, "2016-08-08", "2016-08-08", 60, "dane/Pulawy", "wget")
+)
 ```
 
 ## Generowanie obrazów kolorowych
@@ -42,6 +45,8 @@ eksportujMono(zdjecia[["B8A"]], "dane/Pulawy/B8A_kolor.tif", 0, 5000, c('black',
 
 ## NDVI
 
+Policzmy wskaźnik [NDVI](https://en.wikipedia.org/wiki/Normalized_Difference_Vegetation_Index).
+
 ```{r, eval=FALSE}
 zdjecia[["NDVI"]] = (zdjecia[["B8A"]] - zdjecia[["B04"]]) / (zdjecia[["B8A"]] + zdjecia[["B04"]])
 eksportujMono(zdjecia[["NDVI"]], "dane/Pulawy/NDVI_2016-08-08.tif", -1, 1, c('blue', 'black', 'green'))
@@ -56,7 +61,7 @@ eksportujMono(zdjecia2[["NDVI"]], "dane/Pulawy/NDVI_2016-06-29.tif", -1, 1, c('b
 
 ## Chmury, itp.
 
-Ustawmy na braki danych wszystkie piksele niesklasyfikowane jako "roślinność", "goła ziemia" ani "woda".
+Ustawmy na braki danych wszystkie piksele niesklasyfikowane jako "roślinność", "goła ziemia" ani "woda" (liczenie NDVI dla chmur, braków danych, itp. nie ma sensu).
 
 ```{r, eval=FALSE}
 zdjecia[["NDVI"]][! zdjecia[["SCL"]] == 4] = NA
@@ -72,4 +77,61 @@ Oznaczmy miejsca, wg różnicy wartości NDVI pomiędzy 29 czerwca i 8 sierpnia.
 ```{r, eval=FALSE}
 roznica = zdjecia[["NDVI"]] - zdjecia2[["NDVI"]]
 eksportujMono(roznica, "dane/Pulawy/roznica.tif", -1, 1, c('red', 'black', 'green'))
+```
+
+# McMurray
+
+W maju 2016 r. w okolicach miasta McMurray w Kanadzie miał miejsce olbrzymi pożar lasu (trwał ponad miesiąc).
+Porównując NDVI sprzed i po pożarze spróbujemy odnaleźć pogorzeliska.
+
+## Pobieranie danych
+
+Współrzędne miasteczka to z grubsza 111.37 W, 56.7 N. Pobierzemy dane z 12 kwietnia i 21 czerwca.
+
+```{r, eval=FALSE}
+zdjMcMurray = rbind(
+  pobierzZdjecia(-111.37, 56.7, "2016-04-12", "2016-04-12", 60, "dane/Pulawy", "wget"),
+  pobierzZdjecia(-111.37, 56.7, "2016-06-21", "2016-06-21", 60, "dane/Pulawy", "wget")
+)
+```
+
+## Generowanie obrazów
+
+Wczytajmy obrazy.
+
+```{r, eval=FALSE}
+przed = wczytajZdjecia("dane/McMurray/", "2016-04-12")
+po = wczytajZdjecia("dane/McMurray/", "2016-06-21")
+```
+
+Policzmy NDVI i jego różnicę.
+
+```{r, eval=FALSE}
+ndviPrzed = (przed[["B8A"]] - przed[["B04"]]) / (przed[["B8A"]] + przed[["B04"]])
+ndviPo = (po[["B8A"]] - po[["B04"]]) / (po[["B8A"]] + po[["B04"]])
+roznica = ndviPo - ndviPrzed
+```
+
+Za pomocą klasyfikacji scen zamieńmy na braki danych piksele przysłonięte chmurami na dowolnym z obrazów (różnica wartości NDVI dla tych pikseli nic nam nie powie).
+
+```{r, eval=FALSE}
+roznica2[! przed[["SCL"]] %in% 4:6 | ! po[["SCL"]] %in% 4:6] = NA
+```
+
+Wyeksportujmy obrazki.
+
+Obszary oznaczone na czerwono na obrazie "roznica2.tiff" w północnej części zdjęcia to prawdopodobnie pogorzeliska.
+
+```{r, eval=FALSE}
+eksportujMono(roznica, 'dane/McMurray/roznica.tiff', -1, 1, c('red', 'black', 'green'))
+eksportujMono(roznica2, 'dane/McMurray/roznica2.tiff', -1, 1, c('red', 'black', 'green'))
+
+eksportujMono(ndviPrzed, 'dane/McMurray/ndvi_przed.tiff', -1, 1, c('blue', 'black', 'green'))
+eksportujMono(ndviPo, 'dane/McMurray/ndvi_po.tiff', -1, 1, c('blue', 'black', 'green'))
+
+eksportujMono(przed[["SCL"]], 'dane/McMurray/scl_przed.tiff', 0, 11, c('red', 'red', 'white', 'white', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white', 'white'))
+eksportujMono(po[["SCL"]], 'dane/McMurray/scl_po.tiff', 0, 11, c('red', 'red', 'white', 'white', 'green', 'brown', 'blue', 'white', 'white', 'white', 'white', 'white'))
+
+eksportujKolor(przed[["B04"]], przed[["B03"]], przed[["B02"]], 'dane/McMurray/przed_rgb.tiff', 0, 5000)
+eksportujKolor(po[["B04"]], po[["B03"]], po[["B02"]], 'dane/McMurray/po_rgb.tiff', 0, 5000)
 ```
